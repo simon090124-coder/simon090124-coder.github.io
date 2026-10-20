@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英文单词复习卡</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, sans-serif;
+        }
+        body {
+            background-color: #f0f4f8;
+            padding: 24px 16px;
+        }
+        .wrap {
+            max-width: 620px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+        .progress {
+            text-align:center;
+            margin-bottom:20px;
+            color:#4a5568;
+        }
+        .flashcard {
+            perspective: 1000px;
+            cursor: pointer;
+            height: 200px;
+            margin-bottom:24px;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flashcard.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius:16px;
+            padding:24px;
+            font-size:22px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+        }
+        .card-front {
+            background: #2b6cb0;
+            color: white;
+        }
+        .card-back {
+            background: #ffffff;
+            color: #2d3748;
+            transform: rotateY(180deg);
+            border:1px solid #e2e8f0;
+        }
+        .btn-group {
+            display:none;
+            gap:16px;
+            justify-content:center;
+            margin-top:12px;
+        }
+        .btn-group.show {
+            display:flex;
+        }
+        button {
+            padding:12px 28px;
+            border:none;
+            border-radius:10px;
+            font-size:18px;
+            cursor:pointer;
+        }
+        .btn-know {
+            background:#38a169;
+            color:white;
+        }
+        .btn-dont {
+            background:#e53e3e;
+            color:white;
+        }
+        .end-panel {
+            display:none;
+            text-align:center;
+            margin-top:30px;
+        }
+        .end-panel.show {
+            display:block;
+        }
+        .end-panel p {
+            font-size:20px;
+            margin-bottom:20px;
+        }
+        .btn-restart-all {
+            background:#4a5568;
+            color:white;
+        }
+        .btn-review-wrong {
+            background:#3182ce;
+            color:white;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>📖 英文单词卡自测</h1>
+    <div class="progress" id="progress"></div>
+
+    <div class="flashcard" id="card">
+        <div class="card-inner">
+            <div class="card-front" id="front">word</div>
+            <div class="card-back" id="back">释义</div>
+        </div>
+    </div>
+
+    <div class="btn-group" id="btnGroup">
+        <button class="btn-know" id="btnKnow">✅ 会</button>
+        <button class="btn-dont" id="btnDont">❌ 不会</button>
+    </div>
+
+    <div class="end-panel" id="endPanel">
+        <p id="endText"></p>
+        <button class="btn-review-wrong" id="btnReviewWrong">复习不会的单词</button>
+        <button class="btn-restart-all" id="btnRestartAll">全部重新开始</button>
+    </div>
+</div>
+
+<script>
+const allWords = [
+    {en:"break away from",zh:"逃脱，摆脱；背离"},
+    {en:"hold one's breath",zh:"屏息"},
+    {en:"out of breath",zh:"上气不接下气，喘不过气"},
+    {en:"bring up",zh:"抚养；提出（议题）"},
+    {en:"a bunch of keys (flowers)",zh:"一串钥匙；一束花"},
+    {en:"construction site / site worker",zh:"工地 / 工地工人"},
+    {en:"credit card",zh:"信用卡"},
+    {en:"call for (a doctor)",zh:"去叫(某人)到某处"},
+    {en:"call on",zh:"拜访某人；访问城市"},
+    {en:"care for",zh:"喜欢，看护"},
+    {en:"carry out / carry on",zh:"执行，进行"},
+    {en:"catch hold of",zh:"抓住，握住"},
+    {en:"have / suffer from / catch a cold",zh:"患上感冒"},
+    {en:"catch up with",zh:"赶上某人，跟上某人"},
+    {en:"calm down",zh:"冷静"},
+    {en:"be free of charge",zh:"免费"},
+    {en:"come into being",zh:"产生，成立"},
+    {en:"come true",zh:"实现"},
+    {en:"come to an end",zh:"结束"},
+    {en:"come across",zh:"(偶然)碰见"},
+    {en:"make a comment on / no comment",zh:"评论 / 不予置评"},
+    {en:"have sth / nothing in common",zh:"有 / 没有共同处"},
+    {en:"draw a conclusion",zh:"得出结论"},
+    {en:"connect with",zh:"与…连接"},
+    {en:"on the contrary",zh:"相反地"},
+    {en:"be under control",zh:"控制住"},
+    {en:"be out of control",zh:"失控"},
+    {en:"contribute to / devote to",zh:"把…贡献给"},
+    {en:"consist of / be composed of / comprise of",zh:"由…构成"},
+    {en:"consult / look up the dictionary",zh:"查词典"},
+    {en:"be confident of / have confidence in",zh:"对…有信心"},
+    {en:"compete with sb. for sth.",zh:"与某人竞争某事"},
+    {en:"charity fund",zh:"慈善基金"},
+    {en:"(opening / closing) ceremony",zh:"开幕 / 闭幕"},
+    {en:"put...into consideration",zh:"予以考虑"},
+    {en:"congratulate on",zh:"道贺"},
+    {en:"die from cold (hunger)",zh:"冻死，饿死"},
+    {en:"depend on / rely on",zh:"依赖"},
+    {en:"deal with",zh:"处理，对待"},
+    {en:"have difficulty in",zh:"在做…费劲，有困难"},
+    {en:"be different from",zh:"不同于"},
+    {en:"be similar to / be the same as",zh:"类似 / 相同"},
+    {en:"in the distance",zh:"在远方"},
+    {en:"do cleaning / go shopping",zh:"搞清洁 / 去购物"},
+    {en:"be defined as",zh:"被定义"},
+    {en:"have (sth / nothing) to do with",zh:"与…有关 / 无关"},
+    {en:"do away with / get rid of",zh:"消除"},
+    {en:"drop in on sb.",zh:"顺便看望某人（某处）"},
+    {en:"on duty",zh:"值班，值日"},
+    {en:"make an experiment(s)",zh:"做实验"},
+    {en:"be entitled to",zh:"有…的资格"},
+    {en:"with ease",zh:"轻易地"},
+    {en:"at ease",zh:"自由自在地"},
+    {en:"make an effort (s)",zh:"做出努力"},
+    {en:"without emotion",zh:"无动于衷"},
+    {en:"lay/place emphasis on / upon emphasize on",zh:"强调"},
+    {en:"environmentally friendly",zh:"环保"},
+    {en:"enjoy oneself / have a good time",zh:"过得快乐，玩得开心"},
+    {en:"endanger one's life",zh:"危及生命"},
+    {en:"expected salary",zh:"期望薪酬"},
+    {en:"enforce the law",zh:"执行法律"},
+    {en:"put an end to sth.",zh:"终止某事"},
+    {en:"an entrance to…",zh:"在…入口"},
+    {en:"engage in",zh:"从事于"},
+    {en:"to a large extent",zh:"很大程度上"},
+    {en:"the equality between sexes",zh:"男女平等"},
+    {en:"be equipped with",zh:"用…装备"},
+    {en:"examine one's eyes",zh:"检查眼睛"},
+    {en:"have a physical examination",zh:"进行体检"},
+    {en:"set an example to",zh:"为…树立榜样"},
+    {en:"follow one's example",zh:"以…为榜样"},
+    {en:"exhibit one's courage",zh:"表现出勇气"},
+    {en:"explain to sb. for sth.",zh:"向某人解释某事"},
+    {en:"forgive and forget",zh:"既往不咎"},
+    {en:"fall into the habit of",zh:"养成习惯"},
+    {en:"lose one's face",zh:"丢脸"},
+    {en:"face to face",zh:"面对面"},
+    {en:"in face of / be faced with",zh:"面对"},
+    {en:"be faithful to nation",zh:"对国家忠诚"},
+    {en:"abide by the law",zh:"守法"},
+    {en:"be familiar with",zh:"熟悉"},
+    {en:"take further steps",zh:"采取进一步措施"},
+    {en:"fail in",zh:"失败"},
+    {en:"in favour of",zh:"支持，对…有利"},
+    {en:"for fear of/ that",zh:"生怕，唯恐"},
+    {en:"feel like doing",zh:"很想做"},
+    {en:"feed on",zh:"以…为主食"},
+    {en:"the Spring Festival",zh:"春节"},
+    {en:"have a high fever",zh:"发高烧"},
+    {en:"quite a few/ a good few",zh:"相当多"},
+    {en:"be famous for",zh:"以…而著名"},
+    {en:"fight for peace",zh:"为和平而战"},
+    {en:"be filled with",zh:"充满"},
+    {en:"financial crisis",zh:"金融危机"},
+    {en:"find out",zh:"发现，查明"},
+    {en:"catch fire",zh:"着火"},
+    {en:"set fire to",zh:"纵火"},
+    {en:"make a fire",zh:"生火"},
+    {en:"a firm belief",zh:"坚定的信念"},
+    {en:"from then on (now)",zh:"从那时开始"},
+    {en:"be fit for/ be suitable for",zh:"适合于"},
+    {en:"keep fit",zh:"保持健康"},
+    {en:"fall behind",zh:"落后"},
+    {en:"a flash hope",zh:"一线希望"},
+    {en:"focus on/ concentrate on",zh:"集中于"},
+    {en:"by force",zh:"强迫"},
+    {en:"productive force",zh:"生产力"},
+    {en:"former schoolmate",zh:"老同学"},
+    {en:"back and forth",zh:"前前后后，来来回回"},
+    {en:"freedom of speech",zh:"言论自由"},
+    {en:"freedom and democracy",zh:"自由和民主"},
+    {en:"make friends with",zh:"和某人交朋友"},
+    {en:"make friends again",zh:"重归于好"},
+    {en:"fulfill one's task",zh:"完成任务"},
+    {en:"execute",zh:"v. 执行"},
+    {en:"enhance",zh:"v. 增强，提高"},
+    {en:"hazard",zh:"n. 危险，隐患"},
+    {en:"intricate",zh:"adj. 复杂精细的"},
+    {en:"customize",zh:"v. 定制，定做"},
+    {en:"safeguard",zh:"v. 保护，捍卫"},
+    {en:"accountability",zh:"n. 责任，问责制"},
+    {en:"autonomy",zh:"n. 自主权，自治"},
+    {en:"bias",zh:"n. 偏见，偏袒"},
+    {en:"mimic",zh:"v. 模仿"},
+    {en:"diversity",zh:"n. 多样性"},
+    {en:"transparent",zh:"adj. 透明的；显而易见的"},
+    {en:"futuristic",zh:"adj. 未来派的"},
+    {en:"revolutionize",zh:"v. 彻底变革"},
+    {en:"navigate",zh:"v. 导航；驾驭"},
+    {en:"ethic",zh:"n. 道德准则，伦理"},
+    {en:"distract",zh:"v. 使分心，转移注意力"},
+    {en:"approximately",zh:"adv. 大约，近似地"},
+    {en:"eliminate",zh:"v. 消除，排除"},
+    {en:"optimize",zh:"v. 优化"},
+    {en:"congestion",zh:"n. 拥堵，堵塞"},
+    {en:"emission",zh:"n. 排放物，散发"},
+    {en:"accessibility",zh:"n. 可及性，易用性"},
+    {en:"dominate",zh:"v. 支配，占主导地位"},
+    {en:"dilemma",zh:"n. 两难困境"},
+    {en:"prioritize",zh:"v. 优先处理"},
+    {en:"transition",zh:"n. 过渡，转变"},
+    {en:"hurdle",zh:"n. 障碍，难关"},
+];
+
+let wordList = [...allWords];
+let wrongList = [];
+let currentIdx = 0;
+let isFlipped = false;
+
+const card = document.getElementById('card');
+const front = document.getElementById('front');
+const back = document.getElementById('back');
+const btnGroup = document.getElementById('btnGroup');
+const endPanel = document.getElementById('endPanel');
+const progressText = document.getElementById('progress');
+const endText = document.getElementById('endText');
+
+function shuffle(arr){
+    const tmp = [...arr];
+    for(let i=tmp.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [tmp[i],tmp[j]] = [tmp[j],tmp[i]];
+    }
+    return tmp;
+}
+
+function renderWord(){
+    endPanel.classList.remove('show');
+    btnGroup.classList.remove('show');
+    isFlipped = false;
+    card.classList.remove('flipped');
+    if(currentIdx >= wordList.length){
+        showEnd();
+        return;
+    }
+    const w = wordList[currentIdx];
+    front.innerText = w.en;
+    back.innerText = w.zh;
+    progressText.innerText = `${currentIdx+1} / ${wordList.length}`;
+}
+
+function showEnd(){
+    card.style.display = 'none';
+    btnGroup.classList.remove('show');
+    endPanel.classList.add('show');
+    endText.innerText = `✅ 本轮完成！一共标记【不会】：${wrongList.length} 个单词`;
+}
+
+card.onclick = function(){
+    if(isFlipped) return;
+    isFlipped = true;
+    card.classList.add('flipped');
+    btnGroup.classList.add('show');
+};
+
+document.getElementById('btnKnow').onclick = function(){
+    currentIdx++;
+    renderWord();
+}
+document.getElementById('btnDont').onclick = function(){
+    wrongList.push(wordList[currentIdx]);
+    currentIdx++;
+    renderWord();
+}
+document.getElementById('btnReviewWrong').onclick = function(){
+    wordList = shuffle([...wrongList]);
+    wrongList = [];
+    currentIdx = 0;
+    card.style.display = 'block';
+    renderWord();
+}
+document.getElementById('btnRestartAll').onclick = function(){
+    wordList = shuffle([...allWords]);
+    wrongList = [];
+    currentIdx = 0;
+    card.style.display = 'block';
+    renderWord();
+}
+
+wordList = shuffle(wordList);
+renderWord();
+</script>
+</body>
+</html>
